@@ -22,8 +22,8 @@ export default function Home() {
     setImageUrl('');
 
     try {
-      // Replace this with your actual API endpoint
-      const response = await fetch('/api/generate', {
+      // Create the prediction
+      const response = await fetch('/api/predictions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,13 +31,36 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
 
-      const data = await response.json();
+      let prediction = await response.json();
       
-      if (data.image_url || data.imageUrl) {
-        setImageUrl(data.image_url || data.imageUrl);
+      if (response.status !== 201) {
+        setStatus('Failed to start generation. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Poll for the result
+      while (
+        prediction.status !== "succeeded" &&
+        prediction.status !== "failed"
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        const pollResponse = await fetch(`/api/predictions/${prediction.id}`);
+        prediction = await pollResponse.json();
+        
+        if (pollResponse.status !== 200) {
+          setStatus('Error checking status. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (prediction.status === "succeeded") {
+        setImageUrl(prediction.output[0]);
         setStatus('Dream created successfully! ✨');
       } else {
-        setStatus('Something went wrong. Please try again.');
+        setStatus('Failed to generate image. Please try again.');
       }
     } catch (error) {
       console.error('Error:', error);

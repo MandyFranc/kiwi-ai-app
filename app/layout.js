@@ -1,3 +1,5 @@
+import './globals.css'
+
 export const metadata = {
   title: "Dream with Flux Schnell",
   description: "Generate images with AI",
